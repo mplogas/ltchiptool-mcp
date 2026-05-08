@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ltchiptool_mcp.families import get_strategy, is_supported, list_strategies
 from ltchiptool_mcp.parsers import parse_list_boards
-from ltchiptool_mcp.runner import run_list_boards, run_ltchiptool
+from ltchiptool_mcp.runner import run_dissect, run_list_boards, run_ltchiptool
 
 
 async def tool_list_supported_families() -> dict:
@@ -268,4 +268,71 @@ async def tool_start_flash_read(
         "size_ok": actual_size == s.flash_size_bytes,
         "duration_s": result["duration_s"],
         "family": family,
+    }
+
+
+async def tool_dissect_dump(
+    dump_path: str,
+    family: str,
+    state_label: str | None = None,
+    project_path: str | None = None,
+    engagement_name: str | None = None,
+) -> dict:
+    if not is_supported(family):
+        supported = sorted({s.name for s in list_strategies()})
+        return {
+            "error": "unsupported_family",
+            "message": f"Family {family!r} is not in the supported list: {supported}",
+        }
+    if not Path(dump_path).exists():
+        return {
+            "error": "input_not_found",
+            "message": f"Dump file {dump_path!r} does not exist",
+        }
+    if not project_path and not engagement_name:
+        return {
+            "error": "no_target_dir",
+            "message": "Either project_path or engagement_name is required",
+        }
+
+    label = state_label or "default"
+    try:
+        out_dir = _resolve_uart_subpath(
+            project_path, engagement_name, f"decrypted/{label}"
+        )
+    except ValueError as exc:
+        return {"error": "path_invalid", "message": str(exc)}
+
+    s = get_strategy(family)
+    result = run_dissect(
+        cmd_template=s.dissect_command,
+        output_dir=str(out_dir),
+        dump_path=dump_path,
+        timeout=90,
+    )
+    if "error" in result or result["returncode"] != 0:
+        return {
+            "error": "dissect_command_failed",
+            "message": result.get("error") or result.get("stderr") or "non-zero exit",
+            "returncode": result["returncode"],
+        }
+
+    try:
+        parsed = s.dissect_parser(result["stdout"])
+    except Exception as exc:
+        return {
+            "error": "parse_failed",
+            "message": str(exc),
+            "stdout_excerpt": result["stdout"][:500],
+        }
+
+    return {
+        "family": family,
+        "state_label": label,
+        "dump_path": dump_path,
+        "output_dir": str(out_dir),
+        "rbl_containers": parsed["rbl_containers"],
+        "storage_partition": parsed["storage_partition"],
+        "user_param_key_present": parsed["user_param_key_present"],
+        "duration_s": result["duration_s"],
     }

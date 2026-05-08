@@ -208,3 +208,63 @@ class TestStartFlashRead:
         # size_bytes will be 0 and size_ok False; that's expected here.
         assert result["size_bytes"] == 0
         assert result["size_ok"] is False
+
+
+from ltchiptool_mcp.tools import tool_dissect_dump
+
+
+@pytest.mark.asyncio
+class TestDissectDump:
+    async def test_invokes_runner_and_parses(self, tmp_path):
+        dump = tmp_path / "dump.bin"
+        dump.write_bytes(b"\x00" * 1024)
+        proj = tmp_path / "proj"
+        proj.mkdir()
+
+        fake_dissect_stdout = (
+            "RBL containers:\n"
+            "    0x10f9a: bootloader - [encoding_algorithm=NONE, size=0xea20]\n"
+            "        extracted to /tmp/x/\n"
+            "Storage partition:\n"
+            "    0x1ee000: 32 KiB - 1 keys\n"
+            "    - 'gw_bi'\n"
+            "        extracted all keys to /tmp/x/dump_storage.json\n"
+        )
+
+        with patch("ltchiptool_mcp.tools.run_dissect") as mock_run:
+            mock_run.return_value = {
+                "stdout": fake_dissect_stdout,
+                "stderr": "",
+                "returncode": 0,
+                "duration_s": 0.5,
+            }
+            result = await tool_dissect_dump(
+                dump_path=str(dump),
+                family="bk7231n",
+                state_label="paired",
+                project_path=str(proj),
+            )
+
+        assert result["family"] == "bk7231n"
+        assert result["state_label"] == "paired"
+        assert result["output_dir"].endswith("uart/decrypted/paired")
+        assert len(result["rbl_containers"]) == 1
+        assert "gw_bi" in result["storage_partition"]["keys"]
+
+    async def test_missing_dump_returns_error(self, tmp_path):
+        result = await tool_dissect_dump(
+            dump_path=str(tmp_path / "does_not_exist.bin"),
+            family="bk7231n",
+            engagement_name="x",
+        )
+        assert result["error"] == "input_not_found"
+
+    async def test_unknown_family_returns_error(self, tmp_path):
+        dump = tmp_path / "dump.bin"
+        dump.write_bytes(b"\x00")
+        result = await tool_dissect_dump(
+            dump_path=str(dump),
+            family="ln882h",
+            engagement_name="x",
+        )
+        assert result["error"] == "unsupported_family"
