@@ -1,0 +1,43 @@
+I: Connecting to 'Beken 7231N' on /dev/ttyUSB0 @ 115200
+I: Connect UART1 of the BK7231 to the USB-TTL adapter:
+I:
+I:     --------+        +--------------------
+I:          PC |        | BK7231
+I:     --------+        +--------------------
+I:          RX | ------ | TX1 (GPIO11 / P11)
+I:          TX | ------ | RX1 (GPIO10 / P10)
+I:             |        |
+I:         GND | ------ | GND
+I:     --------+        +--------------------
+I:
+I: Using a good, stable 3.3V power supply is crucial. Most flashing issues
+I: are caused by either voltage drops during intensive flash operations,
+I: or bad/loose wires.
+I:
+I: The UART adapter's 3.3V power regulator is usually not enough. Instead,
+I: a regulated bench power supply, or a linear 1117-type regulator is recommended.
+I:
+I: To enter download mode, the chip has to be rebooted while the flashing program
+I: is trying to establish communication.
+I: In order to do that, you need to bridge CEN pin to GND with a wire.
+I: |-- Success! Chip info: BK7231N
+I: Reading chip info...
+I: Chip: BK7231N
+I: +-----------------------+-------------------------------------+
+I: | Name                  | Value                               |
+I: +-----------------------+-------------------------------------+
+I: | Protocol Type         | FULL                                |
+I: | Chip Type             | BK7231N                             |
+I: | Bootloader Type       | BK7231N 1.0.1                       |
+I: | Chip ID               | 0x7231c                             |
+I: | Boot Version String   | N/A                                 |
+I: |                       |                                     |
+I: | MAC Address           | 00:11:22:33:44:55                   |
+I: |                       |                                     |
+I: | Flash ID              | EB 60 15                            |
+I: | Flash Size (by ID)    | 2 MiB                               |
+I: | Flash Size (detected) | 2 MiB                               |
+I: |                       |                                     |
+I: | Encryption Key        | deadbeef cafebabe 12345678 abcdef00 |
+I: +-----------------------+-------------------------------------+
+I: |-- Finished in 17.424 s
