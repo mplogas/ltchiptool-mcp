@@ -184,5 +184,57 @@ def parse_bk7231_dissect_dump(stdout: str) -> dict:
 
 
 def parse_list_boards(stdout: str) -> list[dict]:
-    """Stub -- implemented in the list_boards parser task."""
-    raise NotImplementedError("Filled in by the list_boards parser task.")
+    """Parse `ltchiptool list boards` output into a list of board dicts.
+
+    Output format is a bordered markdown table:
+        +---+---+---+---+
+        | Name | Code | MCU / Flash / RAM | Family name |
+        +---+---+---+---+
+        | WB3S Wi-Fi Module | wb3s | BK7231T / 2 MiB / 256 KiB | beken-7231t |
+        ...
+
+    Returns dicts with keys: name, code, mcu, flash_size, ram_size,
+    ltchiptool_family. The ltchiptool_family field uses ltchiptool's
+    internal scheme (beken-7231n, realtek-ambz, lightning-ln882h, ...)
+    which is NOT the same as the MCP's family parameter (bk7231n, bk7231t).
+    """
+    if not stdout.strip():
+        return []
+
+    boards: list[dict] = []
+    pattern = re.compile(
+        r"\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|"
+    )
+
+    for line in stdout.splitlines():
+        if line.startswith("+") or not line.strip().startswith("|"):
+            continue
+        m = pattern.search(line)
+        if not m:
+            continue
+        name, code, mcu_combined, family = (
+            m.group(1).strip(),
+            m.group(2).strip(),
+            m.group(3).strip(),
+            m.group(4).strip(),
+        )
+        # Filter the header row
+        if name.lower() == "name" and code.lower() == "code":
+            continue
+
+        # MCU / Flash / RAM is slash-separated with extra whitespace
+        parts = [p.strip() for p in mcu_combined.split("/")]
+        if len(parts) != 3:
+            continue
+        mcu, flash_size, ram_size = parts
+
+        boards.append({
+            "name": name,
+            "code": code,
+            "mcu": mcu,
+            "flash_size": flash_size,
+            "ram_size": ram_size,
+            "ltchiptool_family": family,
+        })
+
+    return boards

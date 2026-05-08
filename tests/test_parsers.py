@@ -102,3 +102,57 @@ class TestParseBK7231DissectDump:
         assert result["rbl_containers"] == []
         assert result["storage_partition"] is None
         assert result["user_param_key_present"] is False
+
+
+from ltchiptool_mcp.parsers import parse_list_boards
+
+
+class TestParseListBoards:
+    @pytest.fixture
+    def real_output(self):
+        return (FIXTURES / "list_boards.txt").read_text()
+
+    def test_returns_non_empty_list_of_dicts(self, real_output):
+        result = parse_list_boards(real_output)
+        assert isinstance(result, list)
+        assert len(result) > 30  # ltchiptool ships ~50+ boards
+        assert all(isinstance(b, dict) for b in result)
+
+    def test_each_board_has_required_fields(self, real_output):
+        result = parse_list_boards(real_output)
+        for board in result:
+            assert "name" in board
+            assert "code" in board
+            assert "mcu" in board
+            assert "flash_size" in board
+            assert "ram_size" in board
+            assert "ltchiptool_family" in board
+
+    def test_known_bk7231n_board(self, real_output):
+        result = parse_list_boards(real_output)
+        wb2l = next(
+            (b for b in result if b["code"] == "wb2l-m1"), None
+        )
+        assert wb2l is not None
+        assert wb2l["mcu"] == "BK7231N"
+        assert wb2l["flash_size"] == "2 MiB"
+        assert wb2l["ram_size"] == "256 KiB"
+        assert wb2l["ltchiptool_family"] == "beken-7231n"
+
+    def test_known_bk7231t_board(self, real_output):
+        result = parse_list_boards(real_output)
+        wb3s = next(
+            (b for b in result if b["code"] == "wb3s"), None
+        )
+        assert wb3s is not None
+        assert wb3s["mcu"] == "BK7231T"
+        assert wb3s["ltchiptool_family"] == "beken-7231t"
+
+    def test_skips_header_and_borders(self, real_output):
+        result = parse_list_boards(real_output)
+        codes = [b["code"] for b in result]
+        assert "Code" not in codes  # header should be filtered
+        assert "" not in codes      # blank row should be filtered
+
+    def test_empty_input_returns_empty_list(self):
+        assert parse_list_boards("") == []

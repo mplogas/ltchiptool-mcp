@@ -1,0 +1,56 @@
++--------------------------------+-----------------------------+-----------------------------+------------------+
+| Name                           | Code                        |      MCU / Flash / RAM      |   Family name    |
++--------------------------------+-----------------------------+-----------------------------+------------------+
+| BW12                           | bw12                        | RTL8710BX / 2 MiB / 256 KiB |   realtek-ambz   |
+| Generic - BK7252               | generic-bk7252              |   BK7252 / 4 MiB / 512 KiB  |    beken-7251    |
+| Generic - LN882HKI             | generic-ln882hki            |  LN882HK / 2 MiB / 295 KiB  | lightning-ln882h |
+| WR2E Wi-Fi Module              | wr2e                        | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| T112_V1.1                      | t112-v1.1                   | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| WL2S Wi-Fi/BLE Module          | wl2s                        |  LN882HK / 2 MiB / 295 KiB  | lightning-ln882h |
+| Generic - RTL8720CF (2M/896k)  | generic-rtl8720cf-2mb-896k  | RTL8720CF / 2 MiB / 256 KiB |  realtek-ambz2   |
+| Generic - BK7231N (Tuya)       | generic-bk7231n-qfn32-tuya  |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| WBLC5 Wi-Fi Module             | wblc5                       |  BK7231T / 2 MiB / 256 KiB  |   beken-7231t    |
+| WR1 Wi-Fi Module               | wr1                         | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| CBU Wi-Fi Module               | cbu                         |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| WB3S Wi-Fi Module              | wb3s                        |  BK7231T / 2 MiB / 256 KiB  |   beken-7231t    |
+| Generic - RTL8720CF (2M/992k)  | generic-rtl8720cf-2mb-992k  | RTL8720CF / 2 MiB / 256 KiB |  realtek-ambz2   |
+| Generic - BK7231T (Tuya)       | generic-bk7231t-qfn32-tuya  |  BK7231T / 2 MiB / 256 KiB  |   beken-7231t    |
+| WB02A Wi-Fi/BLE Module         | wb02a                       |  LN882HK / 2 MiB / 295 KiB  | lightning-ln882h |
+| WB2L_M1 Wi-Fi Module           | wb2l-m1                     |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| BW15                           | bw15                        | RTL8720CF / 2 MiB / 256 KiB |  realtek-ambz2   |
+| WR2LE Wi-Fi Module             | wr2le                       | RTL8710BX / 2 MiB / 256 KiB |   realtek-ambz   |
+| CB3L Wi-Fi Module              | cb3l                        |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| LSC LMA35 BK7231N              | lsc-lma35                   |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| WBR1 Wi-Fi Module              | wbr1                        | RTL8720CF / 2 MiB / 256 KiB |  realtek-ambz2   |
+| Generic - RTL8710BN (2M/788k)  | generic-rtl8710bn-2mb-788k  | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| WR3L Wi-Fi Module              | wr3l                        | RTL8710BX / 2 MiB / 256 KiB |   realtek-ambz   |
+| WB3L Wi-Fi Module              | wb3l                        |  BK7231T / 2 MiB / 256 KiB  |   beken-7231t    |
+| WR3E Wi-Fi Module              | wr3e                        | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| AFW121T                        | afw121t                     | RTL8710BX / 1 MiB / 256 KiB |   realtek-ambz   |
+| WBR3 Wi-Fi Module              | wbr3                        | RTL8720CF / 2 MiB / 256 KiB |  realtek-ambz2   |
+| CB3S Wi-Fi Module              | cb3s                        |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| WR3N Wi-Fi Module              | wr3n                        | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| WR3LE Wi-Fi Module             | wr3le                       | RTL8710BX / 2 MiB / 256 KiB |   realtek-ambz   |
+| CB1S Wi-Fi Module              | cb1s                        |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| Generic - RTL8710BX (4M/980k)  | generic-rtl8710bx-4mb-980k  | RTL8710BX / 4 MiB / 256 KiB |   realtek-ambz   |
+| WB1S Wi-Fi Module              | wb1s                        |  BK7231T / 2 MiB / 256 KiB  |   beken-7231t    |
+| WR2 Wi-Fi Module               | wr2                         | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| Generic - RTL8720CM (4M/1712k) | generic-rtl8720cm-4mb-1712k | RTL8720CM / 4 MiB / 256 KiB |  realtek-ambz2   |
+| LSC LMA35 BK7231T              | lsc-lma35-t                 |  BK7231T / 2 MiB / 256 KiB  |   beken-7231t    |
+| CB2S Wi-Fi Module              | cb2s                        |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| T102_V1.1                      | t102-v1.1                   | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| LN-02 Wi-Fi/BLE Module         | ln-02                       |  LN882HK / 2 MiB / 295 KiB  | lightning-ln882h |
+| WR1E Wi-Fi Module              | wr1e                        | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| Generic - RTL8710BN (2M/468k)  | generic-rtl8710bn-2mb-468k  | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| WB2S Wi-Fi Module              | wb2s                        |  BK7231T / 2 MiB / 256 KiB  |   beken-7231t    |
+| CB3SE Wi-Fi Module             | cb3se                       |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| WR3 Wi-Fi Module               | wr3                         | RTL8710BN / 2 MiB / 256 KiB |   realtek-ambz   |
+| WR2L Wi-Fi Module              | wr2l                        | RTL8710BX / 2 MiB / 256 KiB |   realtek-ambz   |
+| WA2 Wi-Fi Module               | wa2                         |  BK7231Q / 2 MiB / 256 KiB  |   beken-7231q    |
+| WB2L Wi-Fi Module              | wb2l                        |  BK7231T / 2 MiB / 256 KiB  |   beken-7231t    |
+| WBRU Wi-Fi Module              | wbru                        | RTL8720CF / 2 MiB / 256 KiB |  realtek-ambz2   |
+| T103_V1.0                      | t103-v1.0                   | RTL8710BX / 2 MiB / 256 KiB |   realtek-ambz   |
+| CB2L Wi-Fi Module              | cb2l                        |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| CBLC5 Wi-Fi Module             | cblc5                       |  BK7231N / 2 MiB / 256 KiB  |   beken-7231n    |
+| CR3L Wi-Fi Module              | cr3l                        | RTL8720CM / 4 MiB / 256 KiB |  realtek-ambz2   |
++--------------------------------+-----------------------------+-----------------------------+------------------+
