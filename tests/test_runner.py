@@ -53,6 +53,16 @@ class TestRunLtchiptool:
         assert result["returncode"] == -1
         assert "timeout" in result["error"].lower()
 
+    def test_oserror_recorded_as_error_dict(self):
+        with patch("shutil.which", return_value="/usr/bin/ltchiptool"), \
+             patch("subprocess.run") as mock_run:
+            mock_run.side_effect = OSError("Permission denied")
+            result = run_ltchiptool(["flash", "info"], timeout=25)
+
+        assert result["returncode"] == -1
+        assert "error" in result
+        assert "OSError" in result["error"]
+
 
 class TestRunDissect:
     def test_invokes_python_module_form(self, tmp_path):
