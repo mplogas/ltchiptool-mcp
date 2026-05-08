@@ -317,6 +317,22 @@ async def tool_dissect_dump(
             "returncode": result["returncode"],
         }
 
+    # bk7231tools exits 0 and prints a NOTE on stdout when pycryptodome is
+    # missing, then silently skips storage decryption. Treat as a hard error
+    # so callers do not accept a partial result and theorize about why
+    # _storage.json is absent.
+    if "skipping storage decryption" in result["stdout"].lower():
+        return {
+            "error": "missing_storage_crypto_dep",
+            "message": (
+                "bk7231tools skipped storage decryption: pycryptodome is "
+                "not installed in the runtime environment. Install with: "
+                "pip install pycryptodome (or reinstall ltchiptool-mcp; "
+                "pycryptodome is now a hard dep)."
+            ),
+            "stdout_excerpt": result["stdout"][:500],
+        }
+
     try:
         parsed = s.dissect_parser(result["stdout"])
     except Exception as exc:

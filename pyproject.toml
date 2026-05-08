@@ -10,9 +10,15 @@ requires-python = ">=3.11"
 dependencies = [
     "mcp>=1.0.0",
     "ltchiptool>=4.14",
+    "pycryptodome>=3.10",
 ]
 
-# bk7231tools is a transitive dependency of ltchiptool.
+# bk7231tools is a transitive dependency of ltchiptool. It needs pycryptodome
+# at runtime to decrypt the BK7231 storage partition, but bk7231tools does NOT
+# pull pycryptodome as a hard dep -- it lives behind an optional [cli] extra
+# that ltchiptool's transitive does not select. Without it, dissect_dump
+# silently skips storage decryption and produces no _storage.json. We list
+# pycryptodome explicitly so the MCP works end-to-end out of the box.
 # No system packages required beyond a working Python and dialout group membership.
 
 [project.optional-dependencies]

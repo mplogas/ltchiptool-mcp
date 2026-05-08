@@ -292,3 +292,40 @@ class TestDissectDump:
             engagement_name="x",
         )
         assert result["error"] == "unsupported_family"
+
+    async def test_pycryptodome_missing_warning_returns_error(self, tmp_path):
+        """When bk7231tools prints 'skipping storage decryption' due to missing
+        pycryptodome, surface as a hard error rather than passing a partial
+        result. Returncode is 0 in this scenario but the result is incomplete.
+        """
+        dump = tmp_path / "dump.bin"
+        dump.write_bytes(b"\x00" * 1024)
+        proj = tmp_path / "proj"
+        proj.mkdir()
+
+        partial_stdout = (
+            "RBL containers:\n"
+            "    0x10f9a: bootloader - [encoding_algorithm=NONE, size=0xea20]\n"
+            "        extracted to /tmp/x/\n"
+            "    0x129f0a: app - [encoding_algorithm=NONE, size=0xe60a0]\n"
+            "        extracted to /tmp/x/\n"
+            "NOTE: skipping storage decryption because of missing PyCryptodome dependency.\n"
+            "      Install using 'pip install bk7231tools[cli]' to add the dependency.\n"
+        )
+
+        with patch("ltchiptool_mcp.tools.run_dissect") as mock_run:
+            mock_run.return_value = {
+                "stdout": partial_stdout,
+                "stderr": "",
+                "returncode": 0,
+                "duration_s": 0.5,
+            }
+            result = await tool_dissect_dump(
+                dump_path=str(dump),
+                family="bk7231n",
+                state_label="paired",
+                project_path=str(proj),
+            )
+
+        assert result["error"] == "missing_storage_crypto_dep"
+        assert "pycryptodome" in result["message"].lower()
