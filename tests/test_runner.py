@@ -40,9 +40,30 @@ class TestRunLtchiptool:
         assert result["duration_s"] >= 0
 
     def test_raises_when_ltchiptool_missing(self):
-        with patch("shutil.which", return_value=None):
+        with patch("shutil.which", return_value=None), \
+             patch("ltchiptool_mcp.runner.Path") as mock_path:
+            # Force the venv-bin fallback to also miss
+            mock_path.return_value.parent.__truediv__.return_value.is_file.return_value = False
             with pytest.raises(LtchiptoolNotFoundError):
                 run_ltchiptool(["flash", "info"], timeout=25)
+
+    def test_falls_back_to_sys_executable_dir(self, tmp_path):
+        # PATH miss, but a sibling 'ltchiptool' next to sys.executable exists.
+        fake_bin = tmp_path / "ltchiptool"
+        fake_bin.write_text("#!/bin/sh\nexit 0\n")
+        fake_bin.chmod(0o755)
+        fake_python = tmp_path / "python"
+        fake_python.write_text("")
+
+        with patch("shutil.which", return_value=None), \
+             patch("ltchiptool_mcp.runner.sys") as mock_sys, \
+             patch("subprocess.run") as mock_run:
+            mock_sys.executable = str(fake_python)
+            mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
+            run_ltchiptool(["flash", "info"], timeout=25)
+
+        argv = mock_run.call_args[0][0]
+        assert argv[0] == str(fake_bin)
 
     def test_timeout_recorded_as_error_dict(self):
         with patch("shutil.which", return_value="/usr/bin/ltchiptool"), \

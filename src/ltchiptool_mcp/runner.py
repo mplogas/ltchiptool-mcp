@@ -11,10 +11,12 @@ On exceptional failure (timeout, missing binary), the dict has an
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Any
 
 log = logging.getLogger(__name__)
@@ -25,11 +27,23 @@ class LtchiptoolNotFoundError(RuntimeError):
 
 
 def _find_ltchiptool() -> str:
+    """Locate the ltchiptool binary.
+
+    Looks on PATH first, then falls back to the directory containing the
+    running Python interpreter. The fallback matters when an MCP client
+    launches the server as `<venv>/bin/python -m ltchiptool_mcp` with an
+    inherited PATH that does not include the venv's bin directory --
+    a common case for stdio-spawned MCP servers.
+    """
     found = shutil.which("ltchiptool")
     if found:
         return found
+    candidate = Path(sys.executable).parent / "ltchiptool"
+    if candidate.is_file() and os.access(candidate, os.X_OK):
+        return str(candidate)
     raise LtchiptoolNotFoundError(
-        "ltchiptool not found on PATH. Install with: pip install ltchiptool"
+        "ltchiptool not found on PATH or in the running interpreter's bin "
+        "directory. Install with: pip install ltchiptool"
     )
 
 
