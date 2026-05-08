@@ -47,3 +47,58 @@ class TestParseBK7231ChipInfo:
     def test_malformed_input_raises(self):
         with pytest.raises(ValueError, match="No chip info table"):
             parse_bk7231_chip_info("just some random text\nwith no table here")
+
+
+from ltchiptool_mcp.parsers import parse_bk7231_dissect_dump
+
+
+class TestParseBK7231DissectDump:
+    @pytest.fixture
+    def real_output(self):
+        return (FIXTURES / "dissect_dump_paired.txt").read_text()
+
+    def test_extracts_rbl_container_count(self, real_output):
+        result = parse_bk7231_dissect_dump(real_output)
+        assert len(result["rbl_containers"]) == 2
+
+    def test_extracts_bootloader_container(self, real_output):
+        result = parse_bk7231_dissect_dump(real_output)
+        bl = next(c for c in result["rbl_containers"] if c["name"] == "bootloader")
+        assert bl["offset"] == 0x10f9a
+        assert bl["size"] == 0xea20
+        assert bl["encoding"] == "NONE"
+
+    def test_extracts_app_container(self, real_output):
+        result = parse_bk7231_dissect_dump(real_output)
+        app = next(c for c in result["rbl_containers"] if c["name"] == "app")
+        assert app["offset"] == 0x129f0a
+        assert app["size"] == 0xe60a0
+
+    def test_extracts_storage_partition(self, real_output):
+        result = parse_bk7231_dissect_dump(real_output)
+        sp = result["storage_partition"]
+        assert sp["offset"] == 0x1ee000
+        assert sp["size_kib"] == 32
+        assert sp["key_count"] == 17
+
+    def test_extracts_storage_keys(self, real_output):
+        result = parse_bk7231_dissect_dump(real_output)
+        keys = result["storage_partition"]["keys"]
+        assert "gw_bi" in keys
+        assert "gw_wsm" in keys
+        assert "ble_beaconkey" in keys
+        assert len(keys) == 17
+
+    def test_extracts_storage_json_path(self, real_output):
+        result = parse_bk7231_dissect_dump(real_output)
+        assert result["storage_partition"]["json_path"].endswith("_storage.json")
+
+    def test_user_param_key_not_found_recorded(self, real_output):
+        result = parse_bk7231_dissect_dump(real_output)
+        assert result["user_param_key_present"] is False
+
+    def test_empty_input_returns_empty_structure(self):
+        result = parse_bk7231_dissect_dump("")
+        assert result["rbl_containers"] == []
+        assert result["storage_partition"] is None
+        assert result["user_param_key_present"] is False

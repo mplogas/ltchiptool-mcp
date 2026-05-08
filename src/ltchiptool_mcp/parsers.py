@@ -88,8 +88,99 @@ def _parse_flash_size(text: str) -> int:
 
 
 def parse_bk7231_dissect_dump(stdout: str) -> dict:
-    """Stub -- implemented in the dissect_dump task."""
-    raise NotImplementedError("Filled in by the dissect_dump parser task.")
+    """Parse `bk7231tools dissect_dump -e` output into structured info.
+
+    Returns:
+      - rbl_containers: list of {name, offset, size, encoding, extracted_to}
+      - storage_partition: {offset, size_kib, key_count, keys, json_path} or None
+      - user_param_key_present: bool
+    """
+    result: dict = {
+        "rbl_containers": [],
+        "storage_partition": None,
+        "user_param_key_present": False,
+    }
+
+    rbl_pat = re.compile(
+        r"^\s*0x([0-9a-fA-F]+):\s+(\w+)\s+-\s+\[encoding_algorithm=(\w+),\s+size=0x([0-9a-fA-F]+)\]"
+    )
+    extracted_pat = re.compile(r"^\s*extracted to\s+(.+)$")
+    storage_header_pat = re.compile(
+        r"^\s*0x([0-9a-fA-F]+):\s+(\d+)\s+KiB\s+-\s+(\d+)\s+keys"
+    )
+    storage_key_pat = re.compile(r"^\s*-\s+'([^']+)'")
+    storage_json_pat = re.compile(r"^\s*extracted all keys to\s+(.+)$")
+    user_param_present_pat = re.compile(r"^App code `user_param_key`:")
+    user_param_not_found_pat = re.compile(r"^\s*-\s+not found!")
+
+    in_storage = False
+    pending_container: dict | None = None
+    storage: dict | None = None
+    saw_user_param_section = False
+
+    for line in stdout.splitlines():
+        m = rbl_pat.match(line)
+        if m and not in_storage:
+            if pending_container is not None:
+                result["rbl_containers"].append(pending_container)
+            pending_container = {
+                "offset": int(m.group(1), 16),
+                "name": m.group(2),
+                "encoding": m.group(3),
+                "size": int(m.group(4), 16),
+                "extracted_to": None,
+            }
+            continue
+
+        m = extracted_pat.match(line)
+        if m and pending_container is not None and not in_storage:
+            pending_container["extracted_to"] = m.group(1).strip()
+            continue
+
+        m = storage_header_pat.match(line)
+        if m:
+            if pending_container is not None:
+                result["rbl_containers"].append(pending_container)
+                pending_container = None
+            storage = {
+                "offset": int(m.group(1), 16),
+                "size_kib": int(m.group(2)),
+                "key_count": int(m.group(3)),
+                "keys": [],
+                "json_path": None,
+            }
+            in_storage = True
+            continue
+
+        if in_storage:
+            m = storage_key_pat.match(line)
+            if m:
+                storage["keys"].append(m.group(1))
+                continue
+            m = storage_json_pat.match(line)
+            if m:
+                storage["json_path"] = m.group(1).strip()
+                in_storage = False
+                continue
+
+        if user_param_present_pat.match(line):
+            saw_user_param_section = True
+            continue
+        if saw_user_param_section and user_param_not_found_pat.match(line):
+            result["user_param_key_present"] = False
+            saw_user_param_section = False
+            continue
+        if saw_user_param_section and storage_key_pat.match(line):
+            # Found a key under user_param_key section means it IS present
+            result["user_param_key_present"] = True
+            saw_user_param_section = False
+            continue
+
+    if pending_container is not None:
+        result["rbl_containers"].append(pending_container)
+
+    result["storage_partition"] = storage
+    return result
 
 
 def parse_list_boards(stdout: str) -> list[dict]:

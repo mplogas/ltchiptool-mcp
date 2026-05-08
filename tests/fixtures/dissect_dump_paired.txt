@@ -1,0 +1,27 @@
+RBL containers:
+    0x10f9a: bootloader - [encoding_algorithm=NONE, size=0xea20]
+        extracted to /tmp/x/
+    0x129f0a: app - [encoding_algorithm=NONE, size=0xe60a0]
+        extracted to /tmp/x/
+Storage partition:
+    0x1ee000: 32 KiB - 17 keys
+    - 'gw_bi'
+    - 'gw_di'
+    - 'coe_save_key'
+    - 'relay_stat_key'
+    - 'tls_ca_cnt'
+    - 'aging_key'
+    - 'other_key'
+    - 'prod_rslt_key'
+    - 'wf_start_md'
+    - 'is_stride'
+    - 'dzkr48'
+    - 'tem_ele_save_key'
+    - 'gw_wsm'
+    - 'gw_ai'
+    - 'ble_beaconkey'
+    - 'astro_timer'
+    - 'em_sys_env'
+        extracted all keys to /tmp/x/sp112_paired_storage.json
+App code `user_param_key`:
+    - not found!
