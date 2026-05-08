@@ -124,7 +124,7 @@ class TestStartChipInfo:
         with patch("ltchiptool_mcp.tools.run_ltchiptool") as mock_run:
             mock_run.return_value = {
                 "stdout": "",
-                "stderr": "Connecting to ... timeout",
+                "stderr": "Timeout while linking with the chip",
                 "returncode": 1,
                 "duration_s": 25.0,
             }
@@ -208,6 +208,30 @@ class TestStartFlashRead:
         # size_bytes will be 0 and size_ok False; that's expected here.
         assert result["size_bytes"] == 0
         assert result["size_ok"] is False
+
+    @pytest.mark.asyncio
+    async def test_hitl_window_missed_returns_structured_error(self, tmp_path):
+        port = str(tmp_path / "fake_port")
+        (tmp_path / "fake_port").write_bytes(b"")
+        proj = tmp_path / "proj"
+        proj.mkdir()
+
+        with patch("ltchiptool_mcp.tools.run_ltchiptool") as mock_run:
+            mock_run.return_value = {
+                "stdout": "",
+                "stderr": "Timeout while linking with the chip",
+                "returncode": 1,
+                "duration_s": 25.0,
+            }
+            result = await tool_start_flash_read(
+                serial_port=port,
+                family="bk7231n",
+                output_name="dump.bin",
+                project_path=str(proj),
+            )
+
+        assert result["error"] == "hitl_window_missed"
+        assert "retry" in result["message"].lower()
 
 
 from ltchiptool_mcp.tools import tool_dissect_dump

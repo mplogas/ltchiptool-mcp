@@ -101,7 +101,7 @@ async def tool_start_chip_info(serial_port: str, family: str) -> dict:
         stderr = result.get("stderr", "")
         if (
             result["returncode"] == -1
-            or "connecting" in stderr.lower()
+            or "timeout" in stderr.lower()
             or "timeout" in (result.get("error") or "").lower()
             or result["duration_s"] >= timeout - 1
         ):
@@ -242,7 +242,7 @@ async def tool_start_flash_read(
     if "error" in result or result["returncode"] != 0:
         stderr = result.get("stderr", "")
         if (
-            "connecting" in stderr.lower()
+            "timeout" in stderr.lower()
             or "timeout" in (result.get("error") or "").lower()
         ):
             return {
