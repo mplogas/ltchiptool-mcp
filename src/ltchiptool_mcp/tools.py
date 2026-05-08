@@ -7,6 +7,8 @@ work to runner.py. Family-specific knobs come from families.py.
 
 from __future__ import annotations
 
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from ltchiptool_mcp.families import get_strategy, is_supported, list_strategies
@@ -133,4 +135,137 @@ async def tool_start_chip_info(serial_port: str, family: str) -> dict:
         "family": family,
         "serial_port": serial_port,
         "duration_s": result["duration_s"],
+    }
+
+
+def _resolve_uart_subpath(
+    project_path: str | None,
+    engagement_name: str | None,
+    subdir: str,  # "raw" or "decrypted/<state>" or "logs"
+) -> Path:
+    """Resolve the target uart/<subdir>/ directory.
+
+    Priority: project_path > engagement_name > error.
+    Creates the directory if it does not exist.
+    """
+    if project_path:
+        base = Path(project_path) / "uart" / subdir
+    elif engagement_name:
+        engagements_dir = Path(
+            os.environ.get(
+                "PIDEV_ENGAGEMENTS_DIR",
+                str(Path(__file__).resolve().parents[2] / "engagements"),
+            )
+        )
+        base = engagements_dir / engagement_name / "uart" / subdir
+    else:
+        raise ValueError("Either project_path or engagement_name is required")
+
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+async def tool_prepare_flash_read(
+    serial_port: str,
+    family: str,
+    output_name: str | None = None,
+    state_label: str | None = None,
+    project_path: str | None = None,
+    engagement_name: str | None = None,
+) -> dict:
+    err = _validate_args(serial_port, family)
+    if err is not None:
+        return err
+    if not project_path and not engagement_name:
+        return {
+            "error": "no_target_dir",
+            "message": "Either project_path or engagement_name is required",
+        }
+
+    try:
+        raw_dir = _resolve_uart_subpath(project_path, engagement_name, "raw")
+    except ValueError as exc:
+        return {"error": "path_invalid", "message": str(exc)}
+
+    if not output_name:
+        output_name = f"flash_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}.bin"
+    out_path = raw_dir / output_name
+
+    s = get_strategy(family)
+    return {
+        "operator_instructions": (
+            f"Power up the target. Within {s.hitl_window_seconds} seconds of the "
+            f"connect attempt, perform: {s.hitl_action} "
+            f"After lock-on, the read takes ~3-5 minutes for 2 MiB."
+        ),
+        "action": "yank_vcc",
+        "window_seconds": s.hitl_window_seconds,
+        "resolved_paths": {"output": str(out_path)},
+        "expected_size_bytes": s.flash_size_bytes,
+        "next_tool": "start_flash_read",
+        "ready_to_start": True,
+    }
+
+
+async def tool_start_flash_read(
+    serial_port: str,
+    family: str,
+    output_name: str | None = None,
+    state_label: str | None = None,
+    project_path: str | None = None,
+    engagement_name: str | None = None,
+) -> dict:
+    err = _validate_args(serial_port, family)
+    if err is not None:
+        return err
+    if not project_path and not engagement_name:
+        return {
+            "error": "no_target_dir",
+            "message": "Either project_path or engagement_name is required",
+        }
+
+    try:
+        raw_dir = _resolve_uart_subpath(project_path, engagement_name, "raw")
+    except ValueError as exc:
+        return {"error": "path_invalid", "message": str(exc)}
+
+    if not output_name:
+        output_name = f"flash_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}.bin"
+    out_path = raw_dir / output_name
+
+    s = get_strategy(family)
+    result = run_ltchiptool(
+        ["flash", "read", s.ltchiptool_arg, "-d", serial_port, str(out_path)],
+        timeout=600,
+    )
+
+    if "error" in result or result["returncode"] != 0:
+        stderr = result.get("stderr", "")
+        if (
+            "connecting" in stderr.lower()
+            or "timeout" in (result.get("error") or "").lower()
+        ):
+            return {
+                "error": "hitl_window_missed",
+                "message": (
+                    "ltchiptool did not lock onto the chip. Retry start_flash_read "
+                    "with the same args after operator is ready to yank again."
+                ),
+                "stderr": stderr,
+                "duration_s": result["duration_s"],
+            }
+        return {
+            "error": "flash_read_failed",
+            "message": stderr or "ltchiptool returned a non-zero exit code",
+            "returncode": result["returncode"],
+        }
+
+    actual_size = out_path.stat().st_size if out_path.exists() else 0
+    return {
+        "dump_path": str(out_path),
+        "size_bytes": actual_size,
+        "expected_size_bytes": s.flash_size_bytes,
+        "size_ok": actual_size == s.flash_size_bytes,
+        "duration_s": result["duration_s"],
+        "family": family,
     }

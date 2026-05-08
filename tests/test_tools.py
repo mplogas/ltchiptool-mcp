@@ -132,3 +132,79 @@ class TestStartChipInfo:
 
         assert result["error"] == "hitl_window_missed"
         assert "retry" in result["message"].lower()
+
+
+from ltchiptool_mcp.tools import (
+    tool_prepare_flash_read,
+    tool_start_flash_read,
+)
+
+
+@pytest.mark.asyncio
+class TestPrepareFlashRead:
+    async def test_resolves_project_path(self, tmp_path):
+        port = str(tmp_path / "port")
+        (tmp_path / "port").write_bytes(b"")
+        proj = tmp_path / "myproject"
+        proj.mkdir()
+        result = await tool_prepare_flash_read(
+            serial_port=port,
+            family="bk7231n",
+            output_name="dump.bin",
+            state_label="paired",
+            project_path=str(proj),
+        )
+        assert "operator_instructions" in result
+        out_path = result["resolved_paths"]["output"]
+        assert out_path.startswith(str(proj))
+        assert "uart/raw/dump.bin" in out_path
+
+    async def test_resolves_engagement_name(self, tmp_path, monkeypatch):
+        # PIDEV_ENGAGEMENTS_DIR is read by tool to anchor standalone path.
+        port = str(tmp_path / "port")
+        (tmp_path / "port").write_bytes(b"")
+        engagements = tmp_path / "engagements"
+        engagements.mkdir()
+        monkeypatch.setenv("PIDEV_ENGAGEMENTS_DIR", str(engagements))
+        result = await tool_prepare_flash_read(
+            serial_port=port,
+            family="bk7231n",
+            output_name="dump.bin",
+            engagement_name="testdev",
+        )
+        out_path = result["resolved_paths"]["output"]
+        assert "testdev/uart/raw/dump.bin" in out_path
+
+
+@pytest.mark.asyncio
+class TestStartFlashRead:
+    async def test_invokes_ltchiptool_flash_read(self, tmp_path):
+        port = str(tmp_path / "port")
+        (tmp_path / "port").write_bytes(b"")
+        proj = tmp_path / "proj"
+        proj.mkdir()
+
+        with patch("ltchiptool_mcp.tools.run_ltchiptool") as mock_run:
+            mock_run.return_value = {
+                "stdout": "Reading Flash (2 MiB)... done",
+                "stderr": "",
+                "returncode": 0,
+                "duration_s": 200.0,
+            }
+            result = await tool_start_flash_read(
+                serial_port=port,
+                family="bk7231n",
+                output_name="dump.bin",
+                project_path=str(proj),
+            )
+
+        argv = mock_run.call_args[0][0]
+        assert argv[0:3] == ["flash", "read", "bk7231n"]
+        assert argv[3] == "-d"
+        assert argv[4] == port
+        assert "uart/raw/dump.bin" in argv[5]
+        assert result["dump_path"].endswith("uart/raw/dump.bin")
+        # Subprocess was mocked so the .bin file was never written.
+        # size_bytes will be 0 and size_ok False; that's expected here.
+        assert result["size_bytes"] == 0
+        assert result["size_ok"] is False
