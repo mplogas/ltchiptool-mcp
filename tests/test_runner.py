@@ -69,7 +69,9 @@ class TestRunDissect:
             )
 
         argv = mock_run.call_args[0][0]
-        # Replace 'python' with the venv python
+        # 'python' is substituted with the running interpreter
+        import sys
+        assert argv[0] == sys.executable
         assert argv[1:] == [
             "-m", "bk7231tools", "dissect_dump", "-e",
             "-O", str(tmp_path) + "/",
