@@ -46,12 +46,21 @@ _ENGAGEMENT_NAME_PROP = {
 }
 
 
+# Duration class convention (consistent across pidev-sec tool MCPs):
+#   instant    -- <1 s wall clock, foregroundable always
+#   fast       -- 1-10 s, foregroundable
+#   slow       -- 10 s-2 min, background-dispatch recommended (or required if
+#                 the agent has parallel work like a yank to fire mid-window)
+#   very-slow  -- >2 min, background-dispatch effectively required
+
+
 TOOL_DEFINITIONS = [
     Tool(
         name="prepare_chip_info",
         description=(
             "Validate args and return operator instructions for the yank-restore. "
-            "No subprocess. Pair with start_chip_info. [read-only]"
+            "No subprocess. Pair with start_chip_info. "
+            "[read-only] [Duration: instant.]"
         ),
         inputSchema={
             "type": "object",
@@ -64,7 +73,13 @@ TOOL_DEFINITIONS = [
         description=(
             "Run `ltchiptool flash info`. Blocks during the HITL window. Returns "
             "structured chip info dict (chip type, MAC, encryption key, flash size). "
-            "[allowed-write]"
+            "[allowed-write] [Duration: slow (~13-25 s -- HITL retry window). "
+            "Orchestration: when pairing with psu-mcp.yank_restore to enter "
+            "bootloader, dispatch THIS call in a background subagent FIRST, then "
+            "wait ~10 s for the subprocess to actually open the port, then fire "
+            "yank_restore from the main agent. ltchiptool opens/closes the port "
+            "per retry -- do NOT poll fuser to sync; use a blind sleep. See "
+            "skills/ltchiptool-probe.md section 3a.]"
         ),
         inputSchema={
             "type": "object",
@@ -76,7 +91,8 @@ TOOL_DEFINITIONS = [
         name="prepare_flash_read",
         description=(
             "Validate args, resolve output path, return operator instructions. "
-            "No subprocess. Pair with start_flash_read. [read-only]"
+            "No subprocess. Pair with start_flash_read. "
+            "[read-only] [Duration: instant.]"
         ),
         inputSchema={
             "type": "object",
@@ -94,8 +110,14 @@ TOOL_DEFINITIONS = [
     Tool(
         name="start_flash_read",
         description=(
-            "Run `ltchiptool flash read`. Long-running (~3-5 min for 2 MiB). "
-            "Returns dump path, actual size, expected size, duration. [allowed-write]"
+            "Run `ltchiptool flash read`. Long-running (~3-5 min for 2 MiB; "
+            "measured 195 s on a Gosund SP112). Returns dump path, actual size, "
+            "expected size, duration. "
+            "[allowed-write] [Duration: very-slow (>2 min). Background-dispatch "
+            "required unless the agent has nothing else to do. Same HITL "
+            "orchestration as start_chip_info if the chip isn't already in "
+            "bootloader. Once it locks, the read runs to completion without "
+            "further yank.]"
         ),
         inputSchema={
             "type": "object",
@@ -114,7 +136,10 @@ TOOL_DEFINITIONS = [
         name="dissect_dump",
         description=(
             "Run the family's dissect command (e.g. bk7231tools dissect_dump -e). "
-            "Decrypts and extracts partitions from a flash dump. No HITL. [allowed-write]"
+            "Decrypts and extracts partitions from a flash dump. No HITL. "
+            "[allowed-write] [Duration: slow (~30-90 s on a 2 MiB dump). "
+            "Foregroundable; background-dispatch only if the agent has other "
+            "work to do during.]"
         ),
         inputSchema={
             "type": "object",
@@ -132,7 +157,8 @@ TOOL_DEFINITIONS = [
         name="list_supported_families",
         description=(
             "Return the strategy registry of MCP-validated families. Authoritative "
-            "for 'will end-to-end work?'. [read-only]"
+            "for 'will end-to-end work?'. "
+            "[read-only] [Duration: instant (in-memory).]"
         ),
         inputSchema={"type": "object", "properties": {}, "required": []},
     ),
@@ -140,7 +166,8 @@ TOOL_DEFINITIONS = [
         name="list_boards",
         description=(
             "Return all boards ltchiptool knows about, each with vendor/product/family. "
-            "Useful for module-name to family resolution. [read-only]"
+            "Useful for module-name to family resolution. "
+            "[read-only] [Duration: fast (~1-2 s -- spawns ltchiptool subprocess).]"
         ),
         inputSchema={
             "type": "object",
