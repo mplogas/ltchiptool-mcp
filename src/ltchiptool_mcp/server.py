@@ -38,11 +38,11 @@ _PORT_PROP = {
 }
 _PROJECT_PATH_PROP = {
     "type": "string",
-    "description": "Path to a project folder (from project-mcp). When provided, writes to <project_path>/uart/ instead of standalone engagement.",
+    "description": "Path to an engagement folder (from project-mcp). When provided, writes to <engagement_path>/uart/ instead of standalone engagement.",
 }
 _ENGAGEMENT_NAME_PROP = {
     "type": "string",
-    "description": "Standalone engagement name. Mutually optional with project_path; one is required for output-producing tools.",
+    "description": "Standalone engagement name. Mutually optional with engagement_path; one is required for output-producing tools.",
 }
 
 
@@ -101,7 +101,7 @@ TOOL_DEFINITIONS = [
                 "family": _FAMILY_PROP,
                 "output_name": {"type": "string", "description": "Optional dump filename"},
                 "state_label": {"type": "string", "description": "Optional label like factory_a, paired"},
-                "project_path": _PROJECT_PATH_PROP,
+                "engagement_path": _PROJECT_PATH_PROP,
                 "engagement_name": _ENGAGEMENT_NAME_PROP,
             },
             "required": ["serial_port", "family"],
@@ -126,7 +126,7 @@ TOOL_DEFINITIONS = [
                 "family": _FAMILY_PROP,
                 "output_name": {"type": "string"},
                 "state_label": {"type": "string"},
-                "project_path": _PROJECT_PATH_PROP,
+                "engagement_path": _PROJECT_PATH_PROP,
                 "engagement_name": _ENGAGEMENT_NAME_PROP,
             },
             "required": ["serial_port", "family"],
@@ -147,7 +147,7 @@ TOOL_DEFINITIONS = [
                 "dump_path": {"type": "string", "description": "Path to the .bin produced by start_flash_read"},
                 "family": _FAMILY_PROP,
                 "state_label": {"type": "string"},
-                "project_path": _PROJECT_PATH_PROP,
+                "engagement_path": _PROJECT_PATH_PROP,
                 "engagement_name": _ENGAGEMENT_NAME_PROP,
             },
             "required": ["dump_path", "family"],
@@ -220,7 +220,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 family=arguments["family"],
                 output_name=arguments.get("output_name"),
                 state_label=arguments.get("state_label"),
-                project_path=arguments.get("project_path"),
+                engagement_path=arguments.get("engagement_path"),
                 engagement_name=arguments.get("engagement_name"),
             )
         elif name == "start_flash_read":
@@ -229,7 +229,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 family=arguments["family"],
                 output_name=arguments.get("output_name"),
                 state_label=arguments.get("state_label"),
-                project_path=arguments.get("project_path"),
+                engagement_path=arguments.get("engagement_path"),
                 engagement_name=arguments.get("engagement_name"),
             )
         elif name == "dissect_dump":
@@ -237,7 +237,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 dump_path=arguments["dump_path"],
                 family=arguments["family"],
                 state_label=arguments.get("state_label"),
-                project_path=arguments.get("project_path"),
+                engagement_path=arguments.get("engagement_path"),
                 engagement_name=arguments.get("engagement_name"),
             )
         elif name == "list_supported_families":

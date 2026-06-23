@@ -139,17 +139,17 @@ async def tool_start_chip_info(serial_port: str, family: str) -> dict:
 
 
 def _resolve_uart_subpath(
-    project_path: str | None,
+    engagement_path: str | None,
     engagement_name: str | None,
     subdir: str,  # "raw" or "decrypted/<state>" or "logs"
 ) -> Path:
     """Resolve the target uart/<subdir>/ directory.
 
-    Priority: project_path > engagement_name > error.
+    Priority: engagement_path > engagement_name > error.
     Creates the directory if it does not exist.
     """
-    if project_path:
-        base = Path(project_path) / "uart" / subdir
+    if engagement_path:
+        base = Path(engagement_path) / "uart" / subdir
     elif engagement_name:
         engagements_dir = Path(
             os.environ.get(
@@ -159,7 +159,7 @@ def _resolve_uart_subpath(
         )
         base = engagements_dir / engagement_name / "uart" / subdir
     else:
-        raise ValueError("Either project_path or engagement_name is required")
+        raise ValueError("Either engagement_path or engagement_name is required")
 
     base.mkdir(parents=True, exist_ok=True)
     return base
@@ -170,20 +170,20 @@ async def tool_prepare_flash_read(
     family: str,
     output_name: str | None = None,
     state_label: str | None = None,
-    project_path: str | None = None,
+    engagement_path: str | None = None,
     engagement_name: str | None = None,
 ) -> dict:
     err = _validate_args(serial_port, family)
     if err is not None:
         return err
-    if not project_path and not engagement_name:
+    if not engagement_path and not engagement_name:
         return {
             "error": "no_target_dir",
-            "message": "Either project_path or engagement_name is required",
+            "message": "Either engagement_path or engagement_name is required",
         }
 
     try:
-        raw_dir = _resolve_uart_subpath(project_path, engagement_name, "raw")
+        raw_dir = _resolve_uart_subpath(engagement_path, engagement_name, "raw")
     except ValueError as exc:
         return {"error": "path_invalid", "message": str(exc)}
 
@@ -212,20 +212,20 @@ async def tool_start_flash_read(
     family: str,
     output_name: str | None = None,
     state_label: str | None = None,
-    project_path: str | None = None,
+    engagement_path: str | None = None,
     engagement_name: str | None = None,
 ) -> dict:
     err = _validate_args(serial_port, family)
     if err is not None:
         return err
-    if not project_path and not engagement_name:
+    if not engagement_path and not engagement_name:
         return {
             "error": "no_target_dir",
-            "message": "Either project_path or engagement_name is required",
+            "message": "Either engagement_path or engagement_name is required",
         }
 
     try:
-        raw_dir = _resolve_uart_subpath(project_path, engagement_name, "raw")
+        raw_dir = _resolve_uart_subpath(engagement_path, engagement_name, "raw")
     except ValueError as exc:
         return {"error": "path_invalid", "message": str(exc)}
 
@@ -275,7 +275,7 @@ async def tool_dissect_dump(
     dump_path: str,
     family: str,
     state_label: str | None = None,
-    project_path: str | None = None,
+    engagement_path: str | None = None,
     engagement_name: str | None = None,
 ) -> dict:
     if not is_supported(family):
@@ -289,16 +289,16 @@ async def tool_dissect_dump(
             "error": "input_not_found",
             "message": f"Dump file {dump_path!r} does not exist",
         }
-    if not project_path and not engagement_name:
+    if not engagement_path and not engagement_name:
         return {
             "error": "no_target_dir",
-            "message": "Either project_path or engagement_name is required",
+            "message": "Either engagement_path or engagement_name is required",
         }
 
     label = state_label or "default"
     try:
         out_dir = _resolve_uart_subpath(
-            project_path, engagement_name, f"decrypted/{label}"
+            engagement_path, engagement_name, f"decrypted/{label}"
         )
     except ValueError as exc:
         return {"error": "path_invalid", "message": str(exc)}
