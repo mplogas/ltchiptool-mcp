@@ -142,7 +142,7 @@ from ltchiptool_mcp.tools import (
 
 @pytest.mark.asyncio
 class TestPrepareFlashRead:
-    async def test_resolves_project_path(self, tmp_path):
+    async def test_resolves_engagement_path(self, tmp_path):
         port = str(tmp_path / "port")
         (tmp_path / "port").write_bytes(b"")
         proj = tmp_path / "myproject"
@@ -152,7 +152,7 @@ class TestPrepareFlashRead:
             family="bk7231n",
             output_name="dump.bin",
             state_label="paired",
-            project_path=str(proj),
+            engagement_path=str(proj),
         )
         assert "operator_instructions" in result
         out_path = result["resolved_paths"]["output"]
@@ -195,7 +195,7 @@ class TestStartFlashRead:
                 serial_port=port,
                 family="bk7231n",
                 output_name="dump.bin",
-                project_path=str(proj),
+                engagement_path=str(proj),
             )
 
         argv = mock_run.call_args[0][0]
@@ -227,7 +227,7 @@ class TestStartFlashRead:
                 serial_port=port,
                 family="bk7231n",
                 output_name="dump.bin",
-                project_path=str(proj),
+                engagement_path=str(proj),
             )
 
         assert result["error"] == "hitl_window_missed"
@@ -266,7 +266,7 @@ class TestDissectDump:
                 dump_path=str(dump),
                 family="bk7231n",
                 state_label="paired",
-                project_path=str(proj),
+                engagement_path=str(proj),
             )
 
         assert result["family"] == "bk7231n"
@@ -324,7 +324,7 @@ class TestDissectDump:
                 dump_path=str(dump),
                 family="bk7231n",
                 state_label="paired",
-                project_path=str(proj),
+                engagement_path=str(proj),
             )
 
         assert result["error"] == "missing_storage_crypto_dep"
