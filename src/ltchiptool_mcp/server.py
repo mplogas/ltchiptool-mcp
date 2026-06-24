@@ -36,7 +36,7 @@ _PORT_PROP = {
     "type": "string",
     "description": "Serial device path (e.g. /dev/ttyUSB0). FT232 dongles typically appear here. /dev/ttyACM* are reserved for BP6/PM3.",
 }
-_PROJECT_PATH_PROP = {
+_ENGAGEMENT_PATH_PROP = {
     "type": "string",
     "description": "Path to an engagement folder (from project-mcp). When provided, writes to <engagement_path>/uart/ instead of standalone engagement.",
 }
@@ -101,7 +101,7 @@ TOOL_DEFINITIONS = [
                 "family": _FAMILY_PROP,
                 "output_name": {"type": "string", "description": "Optional dump filename"},
                 "state_label": {"type": "string", "description": "Optional label like factory_a, paired"},
-                "engagement_path": _PROJECT_PATH_PROP,
+                "engagement_path": _ENGAGEMENT_PATH_PROP,
                 "engagement_name": _ENGAGEMENT_NAME_PROP,
             },
             "required": ["serial_port", "family"],
@@ -126,7 +126,7 @@ TOOL_DEFINITIONS = [
                 "family": _FAMILY_PROP,
                 "output_name": {"type": "string"},
                 "state_label": {"type": "string"},
-                "engagement_path": _PROJECT_PATH_PROP,
+                "engagement_path": _ENGAGEMENT_PATH_PROP,
                 "engagement_name": _ENGAGEMENT_NAME_PROP,
             },
             "required": ["serial_port", "family"],
@@ -147,7 +147,7 @@ TOOL_DEFINITIONS = [
                 "dump_path": {"type": "string", "description": "Path to the .bin produced by start_flash_read"},
                 "family": _FAMILY_PROP,
                 "state_label": {"type": "string"},
-                "engagement_path": _PROJECT_PATH_PROP,
+                "engagement_path": _ENGAGEMENT_PATH_PROP,
                 "engagement_name": _ENGAGEMENT_NAME_PROP,
             },
             "required": ["dump_path", "family"],
@@ -187,6 +187,11 @@ async def list_tools() -> list[Tool]:
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+    if "project_path" in arguments:
+        return [TextContent(type="text", text=json.dumps({
+            "error": "project_path was renamed to engagement_path in v0.3. "
+                     "Pass engagement_path instead.",
+        }))]
     tier = classify_tool(name)  # raises on unknown
 
     # _confirmed gate kept for symmetry with other MCPs. No MVP tool uses it.
