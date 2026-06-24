@@ -187,11 +187,11 @@ async def list_tools() -> list[Tool]:
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-    if "project_path" in arguments:
-        return [TextContent(type="text", text=json.dumps({
-            "error": "project_path was renamed to engagement_path in v0.3. "
-                     "Pass engagement_path instead.",
-        }))]
+    if name in {"prepare_flash_read", "start_flash_read", "dissect_dump"} and "project_path" in arguments:
+        return [TextContent(type="text", text=json.dumps(
+            {"error": "renamed_argument",
+             "message": "project_path was renamed to engagement_path in v0.3; "
+                        "pass engagement_path instead."}, default=str))]
     tier = classify_tool(name)  # raises on unknown
 
     # _confirmed gate kept for symmetry with other MCPs. No MVP tool uses it.
