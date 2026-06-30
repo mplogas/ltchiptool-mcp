@@ -83,7 +83,19 @@ TOOL_DEFINITIONS = [
         ),
         inputSchema={
             "type": "object",
-            "properties": {"serial_port": _PORT_PROP, "family": _FAMILY_PROP},
+            "properties": {
+                "serial_port": _PORT_PROP,
+                "family": _FAMILY_PROP,
+                "connect_timeout": {
+                    "type": "number",
+                    "description": (
+                        "ltchiptool connect window in seconds (its -t flag, "
+                        "default 20). Widen to ~60 to make the yank-restore HITL "
+                        "timing forgiving: a longer listen leaves more room to "
+                        "land the power yank inside the window."
+                    ),
+                },
+            },
             "required": ["serial_port", "family"],
         },
     ),
@@ -218,6 +230,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             result = await tools.tool_start_chip_info(
                 serial_port=arguments["serial_port"],
                 family=arguments["family"],
+                connect_timeout=arguments.get("connect_timeout", 20.0),
             )
         elif name == "prepare_flash_read":
             result = await tools.tool_prepare_flash_read(

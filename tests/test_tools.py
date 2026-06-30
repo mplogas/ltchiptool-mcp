@@ -114,9 +114,39 @@ class TestStartChipInfo:
                 result = await tool_start_chip_info(serial_port=port, family="bk7231n")
 
         argv = mock_run.call_args[0][0]
-        assert argv == ["flash", "info", "bk7231n", "-d", port]
+        assert argv == ["flash", "info", "bk7231n", "-d", port, "-t", "20.0"]
         assert result["chip_info"]["chip_type"] == "BK7231N"
         assert result["duration_s"] == 1.2
+
+    async def test_connect_timeout_sets_t_flag_and_scales_subprocess_timeout(
+        self, tmp_path
+    ):
+        port = str(tmp_path / "fake_port")
+        (tmp_path / "fake_port").write_bytes(b"")
+
+        with patch("ltchiptool_mcp.tools.run_ltchiptool") as mock_run:
+            mock_run.return_value = {
+                "stdout": "(chip info table)",
+                "stderr": "",
+                "returncode": 0,
+                "duration_s": 1.2,
+            }
+            with patch("ltchiptool_mcp.tools.get_strategy") as mock_get:
+                strat = MagicMock()
+                strat.ltchiptool_arg = "bk7231n"
+                strat.hitl_window_seconds = 20
+                strat.chip_info_parser = lambda s: {"chip_type": "BK7231N"}
+                mock_get.return_value = strat
+
+                await tool_start_chip_info(
+                    serial_port=port, family="bk7231n", connect_timeout=60
+                )
+
+        argv = mock_run.call_args[0][0]
+        assert argv == ["flash", "info", "bk7231n", "-d", port, "-t", "60.0"]
+        # Subprocess ceiling tracks the ltchiptool connect window, not the
+        # family default, so a 60s listen does not get killed at 25s.
+        assert mock_run.call_args.kwargs["timeout"] == 65
 
     async def test_hitl_window_missed_returns_structured_error(self, tmp_path):
         port = str(tmp_path / "fake_port")

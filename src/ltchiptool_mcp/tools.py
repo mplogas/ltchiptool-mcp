@@ -84,16 +84,25 @@ async def tool_prepare_chip_info(serial_port: str, family: str) -> dict:
     }
 
 
-async def tool_start_chip_info(serial_port: str, family: str) -> dict:
-    """Run `ltchiptool flash info <family> -d <port>` and parse the chip info table."""
+async def tool_start_chip_info(
+    serial_port: str, family: str, connect_timeout: float = 20.0
+) -> dict:
+    """Run `ltchiptool flash info <family> -d <port> -t <connect_timeout>` and parse the table.
+
+    connect_timeout is ltchiptool's own per-run connect window (its -t flag,
+    default 20s). Widen it (e.g. 60) so the yank-restore HITL timing is
+    forgiving: a longer listen gives the operator or orchestrator more room to
+    land the power yank inside the window. The subprocess ceiling tracks it so
+    a 60s listen is not killed at the old 25s default.
+    """
     err = _validate_args(serial_port, family)
     if err is not None:
         return err
     s = get_strategy(family)
-    timeout = s.hitl_window_seconds + 5
+    timeout = int(connect_timeout) + 5
 
     result = run_ltchiptool(
-        ["flash", "info", s.ltchiptool_arg, "-d", serial_port],
+        ["flash", "info", s.ltchiptool_arg, "-d", serial_port, "-t", str(float(connect_timeout))],
         timeout=timeout,
     )
     if "error" in result or result["returncode"] != 0:
