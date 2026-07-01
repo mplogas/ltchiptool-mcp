@@ -144,9 +144,9 @@ class TestStartChipInfo:
 
         argv = mock_run.call_args[0][0]
         assert argv == ["flash", "info", "bk7231n", "-d", port, "-t", "60.0"]
-        # Subprocess ceiling tracks the ltchiptool connect window, not the
-        # family default, so a 60s listen does not get killed at 25s.
-        assert mock_run.call_args.kwargs["timeout"] == 65
+        # Subprocess ceiling must clear ltchiptool's own give-up (~1.8*ct+4)
+        # so it self-terminates and we capture its output instead of SIGKILL.
+        assert mock_run.call_args.kwargs["timeout"] == 140
 
     async def test_hitl_window_missed_returns_structured_error(self, tmp_path):
         port = str(tmp_path / "fake_port")
@@ -162,6 +162,29 @@ class TestStartChipInfo:
 
         assert result["error"] == "hitl_window_missed"
         assert "retry" in result["message"].lower()
+
+    async def test_self_terminated_link_timeout_is_hitl_miss_and_surfaces_stdout(
+        self, tmp_path
+    ):
+        # ltchiptool self-terminates on a link timeout (returncode 1, well under
+        # the ceiling) and logs the reason to stdout, not stderr. That must still
+        # classify as a HITL miss, and the stdout must reach the caller.
+        port = str(tmp_path / "fake_port")
+        (tmp_path / "fake_port").write_bytes(b"")
+        with patch("ltchiptool_mcp.tools.run_ltchiptool") as mock_run:
+            mock_run.return_value = {
+                "stdout": (
+                    "I: Connecting to 'Beken 7231N'...\n"
+                    "E: TimeoutError: Timed out attempting to link with chip"
+                ),
+                "stderr": "",
+                "returncode": 1,
+                "duration_s": 13.0,
+            }
+            result = await tool_start_chip_info(serial_port=port, family="bk7231n")
+
+        assert result["error"] == "hitl_window_missed"
+        assert "Timed out attempting to link" in result["stdout"]
 
 
 from ltchiptool_mcp.tools import (

@@ -89,29 +89,39 @@ async def tool_start_chip_info(
 ) -> dict:
     """Run `ltchiptool flash info <family> -d <port> -t <connect_timeout>` and parse the table.
 
-    connect_timeout is ltchiptool's own per-run connect window (its -t flag,
-    default 20s). Widen it (e.g. 60) so the yank-restore HITL timing is
-    forgiving: a longer listen gives the operator or orchestrator more room to
-    land the power yank inside the window. The subprocess ceiling tracks it so
-    a 60s listen is not killed at the old 25s default.
+    connect_timeout is ltchiptool's own -t flag (default 20s). It maps to a
+    probe window of roughly 1.8*connect_timeout + 4 seconds before ltchiptool
+    gives up (measured: -t 5 -> ~13s, -t 10 -> ~22s), so for a ~60s window use
+    connect_timeout ~= 31. A catch returns immediately, well under the window.
+
+    The subprocess ceiling is set generously above that give-up time so
+    ltchiptool self-terminates and we capture its output on a miss, instead of
+    being SIGKILLed mid-retry (which loses its block-buffered stdout).
     """
     err = _validate_args(serial_port, family)
     if err is not None:
         return err
     s = get_strategy(family)
-    timeout = int(connect_timeout) + 5
+    # Clear ltchiptool's ~1.8*ct+4 give-up with margin; this is a hang safety
+    # net, not the mechanism that ends a normal run.
+    timeout = int(connect_timeout * 2) + 20
 
     result = run_ltchiptool(
         ["flash", "info", s.ltchiptool_arg, "-d", serial_port, "-t", str(float(connect_timeout))],
         timeout=timeout,
     )
     if "error" in result or result["returncode"] != 0:
-        # Differentiate HITL miss (timeout / connecting failure) from other errors.
+        # Differentiate HITL miss (link timeout) from other errors. ltchiptool
+        # logs the link-timeout to stdout ("...Timed out attempting to link"),
+        # so check both streams, not just stderr. Surface both so the caller
+        # can see what ltchiptool actually reported instead of an empty string.
         stderr = result.get("stderr", "")
+        stdout = result.get("stdout", "")
+        combined = (stderr + "\n" + stdout).lower()
         if (
             result["returncode"] == -1
-            or "timeout" in stderr.lower()
-            or "timeout" in (result.get("error") or "").lower()
+            or "timed out" in combined
+            or "timeout" in combined
             or result["duration_s"] >= timeout - 1
         ):
             return {
@@ -121,12 +131,15 @@ async def tool_start_chip_info(
                     "window. Retry start_chip_info with the same args after "
                     "the operator is ready to yank again."
                 ),
+                "stdout": stdout,
                 "stderr": stderr,
                 "duration_s": result["duration_s"],
             }
         return {
             "error": "ltchiptool_failed",
-            "message": stderr or "ltchiptool returned a non-zero exit code",
+            "message": stderr or stdout or "ltchiptool returned a non-zero exit code",
+            "stdout": stdout,
+            "stderr": stderr,
             "returncode": result["returncode"],
         }
 
